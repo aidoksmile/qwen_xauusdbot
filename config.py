@@ -1,6 +1,6 @@
-# Конфигурационные параметры
-MODEL_UPDATE_THRESHOLD = 0.8
+# Параметры торговли
 RISK_PERCENT = 2
 LOOKAHEAD_PERIOD = 5
 SIGNAL_CHECK_INTERVAL = 15 * 60
+MODEL_UPDATE_THRESHOLD = 0.8
 DEBUG = False
