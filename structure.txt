@@ -1,0 +1,18 @@
+xau_trading_bot/
+├── main.py
+├── data_loader.py
+├── model_trainer.py
+├── strategy.py
+├── backtester.py
+├── telegram_handler.py
+├── config.py
+├── requirements.txt
+├── Procfile
+├── .env
+├── README.md
+├── data/
+│   └── history.csv
+├── models/
+│   └── xau_model.pkl
+├── images/
+└── logs/
