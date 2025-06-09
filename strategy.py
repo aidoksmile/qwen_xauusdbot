@@ -12,15 +12,22 @@ class XAUTradingStrategy:
     def generate_signal(self, daily_data, fifteen_min_data):
         prediction = self.model.predict(daily_data)
         if prediction is None:
-            logger.error("Модель не обучена")
             return None
 
         signal = 'BUY' if prediction == 1 else 'SELL'
         current_price = fifteen_min_data['Close'][-1]
         atr = self._calculate_atr(fifteen_min_data)
-        sl = current_price * (1 - 0.01 * self.risk_percent) if signal == 'BUY' \
-            else current_price * (1 + 0.01 * self.risk_percent)
-        tp = current_price + (current_price - sl) * 2 if signal == 'BUY' else current_price - (sl - current_price) * 2
+
+        sl_multiplier = 1.5
+        tp_multiplier = 2
+
+        if signal == 'BUY':
+            sl = current_price * (1 - sl_multiplier * self.risk_percent / 100)
+            tp = current_price + (current_price - sl) * tp_multiplier
+        else:
+            sl = current_price * (1 + sl_multiplier * self.risk_percent / 100)
+            tp = current_price - (sl - current_price) * tp_multiplier
+
         risk = self.risk_percent * current_price / 100
 
         return {
@@ -30,7 +37,8 @@ class XAUTradingStrategy:
             'sl': sl,
             'risk': risk,
             'atr': atr,
-            'accuracy': self.model.accuracy if hasattr(self.model, 'accuracy') else 0
+            'accuracy': self.model.accuracy if hasattr(self.model, 'accuracy') else 0,
+            'data': fifteen_min_data
         }
 
     def _calculate_atr(self, data, period=14):
