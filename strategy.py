@@ -10,66 +10,28 @@ class XAUTradingStrategy:
         self.risk_percent = risk_percent
 
     def generate_signal(self, daily_data, fifteen_min_data):
-        try:
-            prediction = self.model.predict(daily_data)
-            if prediction is None:
-                logger.error("Модель не обучена")
-                return None
-
-            signal = 'BUY' if prediction == 1 else 'SELL'
-            current_price = fifteen_min_data['Close'][-1]
-
-            recent_data = fifteen_min_data[-100:]
-            trend = self._determine_trend(recent_data)
-
-            if not self._validate_signal(signal, trend):
-                logger.info(f"Сигнал отклонён из-за несоответствия тренду: {signal} vs {trend}")
-                return None
-
-            atr = self._calculate_atr(fifteen_min_data)
-            sl_multiplier = 1.5
-            tp_multiplier = 2
-
-            if signal == 'BUY':
-                sl = current_price * (1 - sl_multiplier * self.risk_percent / 100)
-                tp = current_price + (current_price - sl) * tp_multiplier
-            else:
-                sl = current_price * (1 + sl_multiplier * self.risk_percent / 100)
-                tp = current_price - (sl - current_price) * tp_multiplier
-
-            risk = self.risk_percent * current_price / 100
-
-            return {
-                'signal': signal,
-                'entry': current_price,
-                'tp': tp,
-                'sl': sl,
-                'risk': risk,
-                'atr': atr,
-                'accuracy': self.model.accuracy if hasattr(self.model, 'accuracy') else 0,
-                'data': fifteen_min_data
-            }
-
-        except Exception as e:
-            logger.error(f"Ошибка при генерации сигнала: {str(e)}")
+        prediction = self.model.predict(daily_data)
+        if prediction is None:
+            logger.error("Модель не обучена")
             return None
 
-    def _determine_trend(self, data, window=20):
-        sma = data['Close'].rolling(window).mean()
-        last_price = data['Close'][-1]
-        if last_price > sma[-1]:
-            return 'UP'
-        elif last_price < sma[-1]:
-            return 'DOWN'
-        else:
-            return 'SIDEWAYS'
+        signal = 'BUY' if prediction == 1 else 'SELL'
+        current_price = fifteen_min_data['Close'][-1]
+        atr = self._calculate_atr(fifteen_min_data)
+        sl = current_price * (1 - 0.01 * self.risk_percent) if signal == 'BUY' \
+            else current_price * (1 + 0.01 * self.risk_percent)
+        tp = current_price + (current_price - sl) * 2 if signal == 'BUY' else current_price - (sl - current_price) * 2
+        risk = self.risk_percent * current_price / 100
 
-    def _validate_signal(self, signal, trend):
-        if signal == 'BUY' and trend == 'UP':
-            return True
-        elif signal == 'SELL' and trend == 'DOWN':
-            return True
-        return False
+        return {
+            'signal': signal,
+            'entry': current_price,
+            'tp': tp,
+            'sl': sl,
+            'risk': risk,
+            'atr': atr,
+            'accuracy': self.model.accuracy if hasattr(self.model, 'accuracy') else 0
+        }
 
     def _calculate_atr(self, data, period=14):
         high_low = data['High'] - data['Low']
