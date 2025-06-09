@@ -11,6 +11,9 @@ os.environ["PY_YFINANCE_CACHE_DIR"] = CACHE_DIR
 # Создаем директорию, если её нет
 os.makedirs(CACHE_DIR, exist_ok=True)
 
+# Теперь можно безопасно импортировать yfinance
+import yfinance as yf
+
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
