@@ -13,7 +13,7 @@ class TelegramHandler:
         self.bot = telegram.Bot(token=token)
         self.chat_id = chat_id
         self.strategy = strategy
-        self.updater = Updater(token=token, use_context=True)
+        self.updater = Updater(bot=self.bot)
         self._setup_handlers()
         self.signal_history = []
 
