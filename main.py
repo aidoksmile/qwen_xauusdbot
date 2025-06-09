@@ -23,7 +23,7 @@ def run_background_monitor():
             # Инициализация Telegram-бота
             telegram_handler = TelegramHandler(telegram_token, chat_id, trading_strategy)
             telegram_handler.start()
-            logging.info("Telegram-бот запущен")
+            logging.info("Telegram-бот успешно запущен")
 
             while True:
                 try:
@@ -42,7 +42,7 @@ def run_background_monitor():
                 except Exception as e:
                     logging.error(f"Ошибка в цикле мониторинга: {e}")
 
-                # Ждём 15 минут перед следующей проверкой
+                # Ждём перед следующей проверкой
                 time.sleep(15 * 60)
 
         except Exception as e:
