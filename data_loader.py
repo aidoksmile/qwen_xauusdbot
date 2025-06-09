@@ -3,7 +3,7 @@ import yfinance as yf
 import pandas as pd
 import logging
 
-# Отключаем кэширование yfinance
+# Отключаем внутреннее кэширование yfinance
 os.environ["PY_YFINANCE_DISABLE_CACHE"] = "1"
 
 # Настройка логирования
@@ -22,7 +22,7 @@ def download_data(symbol='GC=F', interval='1d', retries=3, delay=10):
     for attempt in range(retries):
         try:
             logger.info(f"Попытка {attempt+1} загрузить данные {symbol} {interval}")
-            data = yf.download(tickers=symbol, interval=interval, period='max')
+            data = yf.download(tickers=symbol, interval=interval, period='max', progress=False)
             if not data.empty:
                 logger.info(f"Успешно загружено {len(data)} строк для {symbol} {interval}")
                 return data
