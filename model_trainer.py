@@ -44,9 +44,11 @@ class XAUModel:
         if len(X) < 5:
             logger.error("Недостаточно данных для обучения")
             return 0
+
         tscv = TimeSeriesSplit(n_splits=5)
         best_acc = 0
         best_model = None
+
         for train_idx, test_idx in tscv.split(X):
             model = self._build_model(X.shape[1])
             model.fit(X[train_idx], y[train_idx], epochs=10, verbose=0)
@@ -55,6 +57,7 @@ class XAUModel:
             if acc > best_acc:
                 best_acc = acc
                 best_model = model
+
         self.model = best_model
         self.save_model()
         return best_acc
