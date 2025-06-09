@@ -1,50 +1,94 @@
-from googleapiclient.discovery import build
-from google.oauth2.credentials import Credentials
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import logging
+from config import DEBUG
 
-class GoogleDriveUploader:
-    def __init__(self, credentials_file):
-        self.creds = Credentials.from_authorized_user_file(credentials_file)
-        self.service = build('drive', 'v3', credentials=self.creds)
-    
-    def upload_file(self, file_path, folder_id=None):
-        """Загрузка файла в Google Drive"""
-        try:
-            file_metadata = {'name': os.path.basename(file_path)}
-            if folder_id:
-                file_metadata['parents'] = [folder_id]
-                
-            media = MediaFileUpload(file_path, resumable=True)
-            file = self.service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id,webViewLink'
-            ).execute()
-            
-            return file.get('webViewLink')
-            
-        except Exception as e:
-            logger.error(f"Google Drive upload error: {e}")
-            return None
+logger = logging.getLogger(__name__)
 
 class Backtester:
     def __init__(self, signals=None, returns=None):
-        self.signals = signals
-        self.returns = returns
-        self.drive_uploader = None
+        """Инициализация бэктестера"""
+        self.signals = signals if signals is not None else []
+        self.returns = returns if returns is not None else pd.Series()
     
-    def set_drive_uploader(self, credentials_file):
-        """Настройка загрузки в Google Drive"""
-        self.drive_uploader = GoogleDriveUploader(credentials_file)
+    def calculate_metrics(self):
+        """Рассчитываем метрики стратегии"""
+        try:
+            if not self.signals or self.returns.empty:
+                return {}
+            
+            # Рассчитываем Win Rate
+            win_rate = len(self.returns[self.returns > 0]) / len(self.returns)
+            
+            # Рассчитываем Profit Factor
+            total_profit = self.returns[self.returns > 0].sum()
+            total_loss = abs(self.returns[self.returns < 0].sum())
+            profit_factor = total_profit / total_loss if total_loss != 0 else float('inf')
+            
+            # Рассчитываем общий доход
+            total_return = self.returns.sum()
+            
+            # Рассчитываем Sharpe Ratio
+            sharpe_ratio = self.returns.mean() / self.returns.std() * np.sqrt(252) if self.returns.std() != 0 else 0
+            
+            return {
+                'win_rate': win_rate,
+                'profit_factor': profit_factor,
+                'total_return': total_return,
+                'sharpe_ratio': sharpe_ratio,
+                'trade_count': len(self.returns)
+            }
+            
+        except Exception as e:
+            logger.error(f"Ошибка при расчете метрик: {str(e)}")
+            return {}
     
     def plot_equity_curve(self, filename='images/equity_curve.png'):
-        """Генерация и сохранение графика equity"""
-        plt.figure(figsize=(12, 6))
-        self.returns.cumsum().plot()
-        plt.title('Equity Curve')
-        plt.savefig(filename)
-        plt.close()
-        
-        if self.drive_uploader:
-            drive_link = self.drive_uploader.upload_file(filename)
-            return drive_link
-        return filename
+        """Отрисовываем график equity"""
+        try:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            
+            plt.figure(figsize=(12, 6))
+            self.returns.cumsum().plot()
+            plt.title('Кривая капитала')
+            plt.xlabel('Сделки')
+            plt.ylabel('Доходность')
+            plt.grid(True)
+            plt.savefig(filename)
+            plt.close()
+            
+            return filename
+            
+        except Exception as e:
+            logger.error(f"Ошибка при построении графика equity: {str(e)}")
+            return None
+    
+    def compare_with_buy_and_hold(self, price_data, filename='images/comparison.png'):
+        """Сравнение со стратегией Buy and Hold"""
+        try:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            
+            # Рассчитываем доходность стратегии
+            strategy_returns = self.returns.cumsum()
+            
+            # Рассчитываем доходность Buy and Hold
+            buy_and_hold_returns = (price_data['Close'] / price_data['Close'][0] - 1).loc[strategy_returns.index]
+            
+            # Строим график сравнения
+            plt.figure(figsize=(12, 6))
+            strategy_returns.plot(label='Стратегия')
+            buy_and_hold_returns.plot(label='Buy and Hold')
+            plt.title('Сравнение стратегии с Buy and Hold')
+            plt.xlabel('Время')
+            plt.ylabel('Доходность')
+            plt.legend()
+            plt.grid(True)
+            plt.savefig(filename)
+            plt.close()
+            
+            return filename
+            
+        except Exception as e:
+            logger.error(f"Ошибка при сравнении с Buy and Hold: {str(e)}")
+            return None
