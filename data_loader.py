@@ -1,14 +1,26 @@
+import os
 import yfinance as yf
 import pandas as pd
 import time
 import logging
-from config import DEBUG
 
+# Устанавливаем кэш-директорию в /tmp, так как /opt/render может быть read-only
+CACHE_DIR = "/tmp/yfinance-cache"
+os.environ["PY_YFINANCE_CACHE_DIR"] = CACHE_DIR
+
+# Создаем директорию, если её нет
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 def download_data(symbol='GC=F', interval='1d', period='max', retries=3, delay=10):
     """
-    Загружает данные по золоту/доллару с yfinance
+    Загружает данные по золоту/доллару (XAU/USD) с использованием yfinance
     
     Args:
         symbol: Тикер актива
@@ -22,8 +34,8 @@ def download_data(symbol='GC=F', interval='1d', period='max', retries=3, delay=1
     """
     for attempt in range(retries):
         try:
-            logger.info(f"Попытка {attempt+1} загрузить данные {symbol} {interval}")
-            data = yf.download(symbol, interval=interval, period=period)
+            logger.info(f"Попытка {attempt + 1} загрузить данные {symbol} {interval}")
+            data = yf.download(tickers=symbol, interval=interval, period=period)
             
             if not data.empty:
                 logger.info(f"Успешно загружено {len(data)} строк для {symbol} {interval}")
@@ -32,6 +44,7 @@ def download_data(symbol='GC=F', interval='1d', period='max', retries=3, delay=1
                 logger.warning(f"Пустой ответ при загрузке данных {symbol} {interval}")
             
             time.sleep(delay)
+        
         except Exception as e:
             logger.error(f"Ошибка загрузки {symbol} {interval}: {str(e)}")
             time.sleep(delay)
